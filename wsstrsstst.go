@@ -11,8 +11,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
+	"unicode/utf8"
 	//"sync"
-	//"time"
 )
 
 // For XML processing of Språkbanken's corpus files
@@ -106,9 +107,13 @@ func main() {
 				s := sent{lang: "sv", text: text, n: n}
 				sents = append(sents, s)
 				if len(sents) == nSents {
+					tBefore := time.Now()
 					zents := callSynthN(sents)
 					for _, z := range zents {
 						fmt.Printf("SENT: %d\t%s\nAUDIO LEN: %d\n", z.n, z.text, z.l)
+						nChars := utf8.RuneCountInString(z.text)
+						//len2len := z.l / nChars
+						fmt.Printf("LEN DATA:\t%d\t%d\t%d\t%f\n", z.n, nChars, z.l, float64(nChars)/float64(z.l))
 						if z.err != nil {
 							fmt.Printf("Failed call : %v\n", z.err)
 							fmt.Printf("Number of sentences: %d\n", n)
@@ -117,7 +122,8 @@ func main() {
 
 						}
 					}
-
+					tDuration := time.Since(tBefore).Seconds()
+					fmt.Printf("SYNTH DUR: %fs\n", (tDuration / float64(nSents)))
 					sents = nil
 
 					fmt.Println("------------")
