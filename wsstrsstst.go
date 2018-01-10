@@ -81,8 +81,8 @@ func main() {
 		decoder = xml.NewDecoder(xmlFile)
 	}
 
-	// Number of sentences sent cncurrently to tts server
-	// This is incremented each incConcurr sentences
+	// Number of sentences sent cocurrently to tts server
+	// This is incremented each incEvery sentences
 	nSents := 1
 	var sents []sent
 	var words []string
