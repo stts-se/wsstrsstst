@@ -112,7 +112,6 @@ func main() {
 					for _, z := range zents {
 						fmt.Printf("SENT: %d\t%s\nAUDIO LEN: %d\n", z.n, z.text, z.l)
 						nChars := utf8.RuneCountInString(z.text)
-						//len2len := z.l / nChars
 						fmt.Printf("LEN DATA:\t%d\t%d\t%d\t%f\n", z.n, nChars, z.l, float64(nChars)/float64(z.l))
 						if z.err != nil {
 							fmt.Printf("Failed call : %v\n", z.err)
