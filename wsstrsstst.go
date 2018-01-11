@@ -231,7 +231,9 @@ func main() {
 					fmt.Printf("Failed call : %v\n", z.err)
 					fmt.Printf("Number of sentences: %d\n", n)
 					fmt.Printf("Concurrent sentences: %d\n", nSents)
-					os.Exit(1)
+					close(sentsChan)
+					break
+					//os.Exit(1)
 
 				}
 			}
