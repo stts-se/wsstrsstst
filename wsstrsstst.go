@@ -61,12 +61,32 @@ func readSents(corpusFile string, response chan sent) {
 		readSentsSBXml(corpusFile, response)
 	} else if strings.HasSuffix(corpusFile, ".xml") {
 		readSentsSBXml(corpusFile, response)
-		// } else if strings.HasSuffix(corpusFile, ".txt") {
-		// 	readSentsTxt(corpusFile, response, state)
+	} else if strings.HasSuffix(corpusFile, ".txt") {
+		readSentsTxt(corpusFile, response)
 	} else {
 		fmt.Fprintln(os.Stderr, "Unknown file type:", corpusFile)
 		os.Exit(1)
 	}
+}
+
+func readSentsTxt(corpusFile string, response chan sent) {
+	content, err := ioutil.ReadFile(corpusFile)
+	if err != nil {
+		fmt.Println("Error opening file:", err)
+		return
+	}
+	var n int
+	lines := strings.Split(string(content), "\n")
+	for _, l := range lines {
+		if strings.TrimSpace(l) == "" {
+			continue
+		}
+		n++
+
+		s := sent{lang: "sv", text: l, n: n}
+		response <- s
+	}
+	close(response)
 }
 
 func readSentsSBXml(corpusFile string, response chan sent) {
@@ -238,7 +258,7 @@ func main() {
 			for _, z := range zents {
 				fmt.Printf("SENT: %d\t%s\nAUDIO LEN: %d\n", z.n, z.text, z.l)
 				nChars := utf8.RuneCountInString(z.text)
-				fmt.Printf("LEN DATA:\t%d\t%d\t%d\t%f\n", z.n, nChars, z.l, float64(nChars)/float64(z.l))
+				fmt.Printf("LEN DATA:\t#%d\t%d\t%d\t%f\n", z.n, nChars, z.l, float64(nChars)/float64(z.l))
 				if z.err != nil {
 					fmt.Printf("Failed call : %v\n", z.err)
 					fmt.Printf("Number of sentences: %d\n", n)
