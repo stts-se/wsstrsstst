@@ -233,7 +233,9 @@ func callSynth1(s sent, resp chan sent) {
 func main() {
 
 	if len(os.Args) != 2 {
-		fmt.Fprintln(os.Stderr, "<Språkbanken CORPUS FILE> (see https://spraakbanken.gu.se/eng/resources)\nThe file can be in .bz2 or unzipped XML")
+		fmt.Fprintln(os.Stderr, "go run wsstrsstst.go <Text file> (one sentence per line)")
+		fmt.Fprintln(os.Stderr, " OR")
+		fmt.Fprintln(os.Stderr, "go run wsstrsstst.go <Språkbanken corpus file>\n - See https://spraakbanken.gu.se/eng/resources. The file can be in .bz2 or unzipped XML.")
 		os.Exit(0)
 	}
 
