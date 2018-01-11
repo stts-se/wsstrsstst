@@ -237,7 +237,7 @@ func main() {
 			}
 			tDuration := time.Since(tBefore).Seconds()
 			fmt.Printf("SYNTH DUR: %fs\n", (tDuration / float64(nSents)))
-			sents = nil
+			sents = nil // Empties the chache of sentences
 
 			fmt.Println("------------")
 		}
