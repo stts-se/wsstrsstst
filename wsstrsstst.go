@@ -215,6 +215,12 @@ func callSynth1(s sent, resp chan sent) {
 		return //fmt.Errorf("failed to get audio : %v", err)
 	}
 	aBody, err := ioutil.ReadAll(aRes.Body)
+	if err != nil {
+		res.err = fmt.Errorf("failed to read response : %v", err)
+		resp <- res
+		return //fmt.Errorf("failed to write audio file : %v", err)
+	}
+
 	u, err := url.Parse(wsResp.Audio)
 	if err != nil {
 		res.err = fmt.Errorf("failed to parse audio url : %v", err)
