@@ -183,7 +183,7 @@ func callSynth1(s sent, resp chan sent) {
 
 	res := sent{lang: s.lang, text: s.text, n: s.n}
 
-	urrl := "http://localhost:10000/?lang=" + s.lang + "&input=" + url.PathEscape(s.text)
+	urrl := "http://localhost:10000/?lang=" + s.lang + "&input=" + url.QueryEscape(s.text)
 	ures, err := http.Get(urrl)
 	if err != nil {
 		res.err = err
