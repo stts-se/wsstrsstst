@@ -241,7 +241,7 @@ func main() {
 
 	f := os.Args[1]
 
-	// Number of sentences sent cocurrently to tts server
+	// Number of sentences sent concurrently to tts server
 	// This is incremented each 'incEvery' sentences
 	nSents := 1
 	var sents []sent
