@@ -57,6 +57,19 @@ var maxConcurr = 10
 var incEvery = 100
 
 func readSents(corpusFile string, response chan sent) {
+	if strings.HasSuffix(corpusFile, ".xml.bz2") {
+		readSentsSBXml(corpusFile, response)
+	} else if strings.HasSuffix(corpusFile, ".xml") {
+		readSentsSBXml(corpusFile, response)
+		// } else if strings.HasSuffix(corpusFile, ".txt") {
+		// 	readSentsTxt(corpusFile, response, state)
+	} else {
+		fmt.Fprintln(os.Stderr, "Unknown file type:", corpusFile)
+		os.Exit(1)
+	}
+}
+
+func readSentsSBXml(corpusFile string, response chan sent) {
 	var xmlFile *os.File
 	xmlFile, err := os.Open(corpusFile)
 	if err != nil {
@@ -76,7 +89,6 @@ func readSents(corpusFile string, response chan sent) {
 	var words []string
 	var n int
 	for {
-
 		// Read tokens from the XML document in a stream.
 		t, _ := decoder.Token()
 		if t == nil {
@@ -232,7 +244,7 @@ func main() {
 					fmt.Printf("Number of sentences: %d\n", n)
 					fmt.Printf("Concurrent sentences: %d\n", nSents)
 					close(sentsChan)
-					break
+					//break
 					//os.Exit(1)
 
 				}
@@ -247,7 +259,6 @@ func main() {
 			nSents++
 		}
 	}
-
 }
 
 // func main() {
