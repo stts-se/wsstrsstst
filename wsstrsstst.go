@@ -56,17 +56,9 @@ var maxConcurr = 10
 // Number of calls before increasing the number of concurrent calls with one
 var incEvery = 100
 
-func main() {
-
-	if len(os.Args) != 2 {
-		fmt.Fprintln(os.Stderr, "<Språkbanken CORPUS FILE> (see https://spraakbanken.gu.se/eng/resources)\nThe file can be in .bz2 or unzipped XML")
-		os.Exit(0)
-	}
-
-	f := os.Args[1]
-
+func readSents(corpusFile string, response chan sent) {
 	var xmlFile *os.File
-	xmlFile, err := os.Open(f)
+	xmlFile, err := os.Open(corpusFile)
 	if err != nil {
 		fmt.Println("Error opening file:", err)
 		return
@@ -74,17 +66,13 @@ func main() {
 	defer xmlFile.Close()
 
 	var decoder *xml.Decoder
-	if strings.HasSuffix(f, ".bz2") {
+	if strings.HasSuffix(corpusFile, ".bz2") {
 		bz := bzip2.NewReader(xmlFile)
 		decoder = xml.NewDecoder(bz)
 	} else {
 		decoder = xml.NewDecoder(xmlFile)
 	}
 
-	// Number of sentences sent cocurrently to tts server
-	// This is incremented each incEvery sentences
-	nSents := 1
-	var sents []sent
 	var words []string
 	var n int
 	for {
@@ -97,7 +85,6 @@ func main() {
 		// Inspect the type of the token just read.
 		switch se := t.(type) {
 		case xml.EndElement:
-			//fmt.Println("END: " + se.Name.Local)
 			if se.Name.Local == "sentence" {
 
 				text := strings.Join(words, " ")
@@ -105,31 +92,8 @@ func main() {
 				n++
 
 				s := sent{lang: "sv", text: text, n: n}
-				sents = append(sents, s)
-				if len(sents) == nSents {
-					tBefore := time.Now()
-					zents := callSynthN(sents)
-					for _, z := range zents {
-						fmt.Printf("SENT: %d\t%s\nAUDIO LEN: %d\n", z.n, z.text, z.l)
-						nChars := utf8.RuneCountInString(z.text)
-						fmt.Printf("LEN DATA:\t%d\t%d\t%d\t%f\n", z.n, nChars, z.l, float64(nChars)/float64(z.l))
-						if z.err != nil {
-							fmt.Printf("Failed call : %v\n", z.err)
-							fmt.Printf("Number of sentences: %d\n", n)
-							fmt.Printf("Concurrent sentences: %d\n", nSents)
-							os.Exit(1)
-
-						}
-					}
-					tDuration := time.Since(tBefore).Seconds()
-					fmt.Printf("SYNTH DUR: %fs\n", (tDuration / float64(nSents)))
-					sents = nil
-
-					fmt.Println("------------")
-				}
-				if n%incEvery == 0 && nSents < maxConcurr {
-					nSents++
-				}
+				//sents = append(sents, s)
+				response <- s
 			}
 		case xml.StartElement:
 			elemName := se.Name.Local
@@ -147,6 +111,7 @@ func main() {
 
 	}
 
+	close(response)
 }
 
 // Save audio file locally (default false)
@@ -232,3 +197,146 @@ func callSynth1(s sent, resp chan sent) {
 	resp <- res
 
 }
+
+func main() {
+
+	if len(os.Args) != 2 {
+		fmt.Fprintln(os.Stderr, "<Språkbanken CORPUS FILE> (see https://spraakbanken.gu.se/eng/resources)\nThe file can be in .bz2 or unzipped XML")
+		os.Exit(0)
+	}
+
+	f := os.Args[1]
+
+	// Number of sentences sent cocurrently to tts server
+	// This is incremented each 'incEvery' sentences
+	nSents := 1
+	var sents []sent
+	var n int
+
+	sentsChan := make(chan sent)
+	go readSents(f, sentsChan)
+
+	for s := range sentsChan {
+		n++
+		sents = append(sents, s)
+
+		if len(sents) == nSents {
+			tBefore := time.Now()
+			zents := callSynthN(sents)
+			for _, z := range zents {
+				fmt.Printf("SENT: %d\t%s\nAUDIO LEN: %d\n", z.n, z.text, z.l)
+				nChars := utf8.RuneCountInString(z.text)
+				fmt.Printf("LEN DATA:\t%d\t%d\t%d\t%f\n", z.n, nChars, z.l, float64(nChars)/float64(z.l))
+				if z.err != nil {
+					fmt.Printf("Failed call : %v\n", z.err)
+					fmt.Printf("Number of sentences: %d\n", n)
+					fmt.Printf("Concurrent sentences: %d\n", nSents)
+					os.Exit(1)
+
+				}
+			}
+			tDuration := time.Since(tBefore).Seconds()
+			fmt.Printf("SYNTH DUR: %fs\n", (tDuration / float64(nSents)))
+			sents = nil
+
+			fmt.Println("------------")
+		}
+		if n%incEvery == 0 && nSents < maxConcurr {
+			nSents++
+		}
+	}
+
+}
+
+// func main() {
+
+// 	if len(os.Args) != 2 {
+// 		fmt.Fprintln(os.Stderr, "<Språkbanken CORPUS FILE> (see https://spraakbanken.gu.se/eng/resources)\nThe file can be in .bz2 or unzipped XML")
+// 		os.Exit(0)
+// 	}
+
+// 	f := os.Args[1]
+
+// 	var xmlFile *os.File
+// 	xmlFile, err := os.Open(f)
+// 	if err != nil {
+// 		fmt.Println("Error opening file:", err)
+// 		return
+// 	}
+// 	defer xmlFile.Close()
+
+// 	var decoder *xml.Decoder
+// 	if strings.HasSuffix(f, ".bz2") {
+// 		bz := bzip2.NewReader(xmlFile)
+// 		decoder = xml.NewDecoder(bz)
+// 	} else {
+// 		decoder = xml.NewDecoder(xmlFile)
+// 	}
+
+// 	// Number of sentences sent cocurrently to tts server
+// 	// This is incremented each incEvery sentences
+// 	nSents := 1
+// 	var sents []sent
+// 	var words []string
+// 	var n int
+// 	for {
+
+// 		// Read tokens from the XML document in a stream.
+// 		t, _ := decoder.Token()
+// 		if t == nil {
+// 			break
+// 		}
+// 		// Inspect the type of the token just read.
+// 		switch se := t.(type) {
+// 		case xml.EndElement:
+// 			//fmt.Println("END: " + se.Name.Local)
+// 			if se.Name.Local == "sentence" {
+
+// 				text := strings.Join(words, " ")
+// 				words = nil
+// 				n++
+
+// 				s := sent{lang: "sv", text: text, n: n}
+// 				sents = append(sents, s)
+// 				if len(sents) == nSents {
+// 					tBefore := time.Now()
+// 					zents := callSynthN(sents)
+// 					for _, z := range zents {
+// 						fmt.Printf("SENT: %d\t%s\nAUDIO LEN: %d\n", z.n, z.text, z.l)
+// 						nChars := utf8.RuneCountInString(z.text)
+// 						fmt.Printf("LEN DATA:\t%d\t%d\t%d\t%f\n", z.n, nChars, z.l, float64(nChars)/float64(z.l))
+// 						if z.err != nil {
+// 							fmt.Printf("Failed call : %v\n", z.err)
+// 							fmt.Printf("Number of sentences: %d\n", n)
+// 							fmt.Printf("Concurrent sentences: %d\n", nSents)
+// 							os.Exit(1)
+
+// 						}
+// 					}
+// 					tDuration := time.Since(tBefore).Seconds()
+// 					fmt.Printf("SYNTH DUR: %fs\n", (tDuration / float64(nSents)))
+// 					sents = nil
+
+// 					fmt.Println("------------")
+// 				}
+// 				if n%incEvery == 0 && nSents < maxConcurr {
+// 					nSents++
+// 				}
+// 			}
+// 		case xml.StartElement:
+// 			elemName := se.Name.Local
+// 			if !knownElems[elemName] {
+// 				fmt.Printf("Unknown element: %s\n", elemName)
+// 				os.Exit(1)
+// 			}
+// 			if elemName == "w" {
+// 				w := W{}
+// 				decoder.DecodeElement(&w, &se)
+// 				words = append(words, w.W)
+// 			}
+// 		default: // ?
+// 		}
+
+// 	}
+
+// }
