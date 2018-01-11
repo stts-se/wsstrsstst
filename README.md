@@ -10,7 +10,7 @@ SAMPLE USAGE
 
 You can also read sentences from a simple text file (one sentence per line):
 
-* go run wsstrsstst.go <text file>
+* go run wsstrsstst.go &lt;text file&gt;
 
 The text file must have a .txt file extension.
 
