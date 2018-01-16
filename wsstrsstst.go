@@ -4,6 +4,7 @@ import (
 	"compress/bzip2"
 	"encoding/json"
 	"encoding/xml"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -146,8 +147,9 @@ func readSentsSBXml(corpusFile string, response chan sent) {
 	close(response)
 }
 
-// Save audio file locally (default false)
-var saveAudio bool = false
+var audioDir = "audio"
+var saveAudio bool = false // save audio file locally
+var nMax = 0               // max no of sentences to synthesize
 
 func callSynthN(sents []sent) []sent {
 	var res []sent
@@ -228,7 +230,7 @@ func callSynth1(s sent, resp chan sent) {
 		return //fmt.Errorf("failed to write audio file : %v", err)
 	}
 	if saveAudio {
-		ioutil.WriteFile(filepath.Base(u.Path), aBody, 0755)
+		ioutil.WriteFile(filepath.Join(audioDir, filepath.Base(u.Path)), aBody, 0755)
 	}
 
 	res.l = len(aBody)
@@ -238,16 +240,34 @@ func callSynth1(s sent, resp chan sent) {
 
 func main() {
 
-	if len(os.Args) != 2 {
+	var nMaxF = flag.Int("n", 0, "max number of sentences to synthesize (default: no max)")
+	var saveAudioF = flag.Bool("s", false, "save audio files to disk (default: false)")
+
+	flag.Parse()
+
+	nMax = *nMaxF
+	saveAudio = *saveAudioF
+
+	if len(flag.Args()) != 1 {
 		fmt.Fprintln(os.Stderr, "go run wsstrsstst.go <Text file> (one sentence per line)")
 		fmt.Fprintln(os.Stderr, " OR")
 		fmt.Fprintln(os.Stderr, "go run wsstrsstst.go <Språkbanken corpus file>\n - See https://spraakbanken.gu.se/eng/resources. The file can be in .bz2 or unzipped XML.")
+		fmt.Println("\nOptional flags:")
+		flag.PrintDefaults()
 		os.Exit(0)
+	}
+
+	if saveAudio {
+		err := os.MkdirAll(audioDir, 0700)
+		if err != nil {
+			fmt.Printf("Failed to create audio dir : %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	mainStarted := time.Now()
 
-	f := os.Args[1]
+	f := flag.Arg(0)
 
 	// Number of sentences sent concurrently to tts server
 	// This is incremented each 'incEvery' sentences
@@ -259,7 +279,14 @@ func main() {
 	go readSents(f, sentsChan)
 
 	for s := range sentsChan {
+		if nMax > 0 && n >= nMax {
+			fmt.Printf("Reached max no of sentences: %d\n", n)
+			close(sentsChan)
+			break
+		}
+
 		n++
+
 		sents = append(sents, s)
 
 		if len(sents) == nSents {
@@ -291,6 +318,9 @@ func main() {
 	}
 	mainDuration := time.Since(mainStarted)
 	fmt.Printf("MAIN LOOP TOOK %v\n", mainDuration.String())
+	if saveAudio {
+		fmt.Printf("AUDIO FILES SAVED TO FOLDER: %v\n", audioDir)
+	}
 }
 
 // func main() {
