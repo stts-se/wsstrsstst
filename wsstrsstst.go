@@ -147,7 +147,7 @@ func readSentsSBXml(corpusFile string, response chan sent) {
 }
 
 // Save audio file locally (default false)
-var saveAudio bool
+var saveAudio bool = false
 
 func callSynthN(sents []sent) []sent {
 	var res []sent
@@ -239,6 +239,8 @@ func main() {
 		os.Exit(0)
 	}
 
+	mainStarted := time.Now()
+
 	f := os.Args[1]
 
 	// Number of sentences sent concurrently to tts server
@@ -281,6 +283,8 @@ func main() {
 			nSents++
 		}
 	}
+	mainDuration := time.Since(mainStarted)
+	fmt.Printf("MAIN LOOP TOOK %v\n", mainDuration.String())
 }
 
 // func main() {
