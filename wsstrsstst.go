@@ -286,10 +286,10 @@ func main() {
 	}
 	fmt.Print("Settings:\n")
 	fmt.Printf(" - input file: %s\n", file)
-	fmt.Printf(" - max number of sentences: %s\n", nMaxS)
-	fmt.Printf(" - save audio%s\n", saveAudioS)
 	fmt.Printf(" - wikispeech url: %s\n", wikispeechURL)
 	fmt.Printf(" - wikispeech language tag: %s\n", lang)
+	fmt.Printf(" - max number of sentences: %s\n", nMaxS)
+	fmt.Printf(" - save audio%s\n", saveAudioS)
 	fmt.Printf("\n")
 
 	if saveAudio {
