@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -84,7 +85,7 @@ func readSentsTxt(corpusFile string, response chan sent) {
 		}
 		n++
 
-		s := sent{lang: "sv", text: l, n: n}
+		s := sent{lang: lang, text: l, n: n}
 		response <- s
 	}
 	close(response)
@@ -150,6 +151,9 @@ func readSentsSBXml(corpusFile string, response chan sent) {
 var audioDir = "audio"
 var saveAudio bool = false // save audio file locally
 var nMax = 0               // max no of sentences to synthesize
+var finalSlashRe = regexp.MustCompile("/$")
+var wikispeechURL = "<undefined>"
+var lang = "<undefined>"
 
 func callSynthN(sents []sent) []sent {
 	var res []sent
@@ -185,7 +189,7 @@ func callSynth1(s sent, resp chan sent) {
 
 	res := sent{lang: s.lang, text: s.text, n: s.n}
 
-	urrl := "http://localhost:10000/?lang=" + s.lang + "&input=" + url.QueryEscape(s.text)
+	urrl := wikispeechURL + "/?lang=" + s.lang + "&input=" + url.QueryEscape(s.text)
 	ures, err := http.Get(urrl)
 	if err != nil {
 		res.err = err
@@ -240,22 +244,37 @@ func callSynth1(s sent, resp chan sent) {
 
 func main() {
 
-	var nMaxF = flag.Int("n", 0, "max number of sentences to synthesize (default: no max)")
-	var saveAudioF = flag.Bool("s", false, "save audio files to disk (default: false)")
+	var nMaxF = flag.Int("n", 0, "max number of sentences to synthesize (default no limit)")
+	var saveAudioF = flag.Bool("s", false, "save audio files to disk (default false)")
+	var wikispeechURLF = flag.String("u", "http://localhost:10000", "wikispeech url")
+	var langF = flag.String("l", "sv", "wikispeech language tag")
 
 	flag.Parse()
 
-	nMax = *nMaxF
-	saveAudio = *saveAudioF
-
 	if len(flag.Args()) != 1 {
-		fmt.Fprintln(os.Stderr, "go run wsstrsstst.go <Text file> (one sentence per line)")
+		fmt.Fprintln(os.Stderr, "go run <flags> wsstrsstst.go <Text file> (one sentence per line)")
 		fmt.Fprintln(os.Stderr, " OR")
-		fmt.Fprintln(os.Stderr, "go run wsstrsstst.go <Språkbanken corpus file>\n - See https://spraakbanken.gu.se/eng/resources. The file can be in .bz2 or unzipped XML.")
-		fmt.Println("\nOptional flags:")
+		fmt.Fprintln(os.Stderr, "go run <flags> wsstrsstst.go <Språkbanken corpus file>\n - See https://spraakbanken.gu.se/eng/resources. The file can be in .bz2 or unzipped XML.")
+		fmt.Fprintln(os.Stderr, "\nOptional flags:")
 		flag.PrintDefaults()
 		os.Exit(0)
 	}
+
+	nMax = *nMaxF
+	saveAudio = *saveAudioF
+	wikispeechURL = finalSlashRe.ReplaceAllString(*wikispeechURLF, "")
+	lang = *langF
+
+	nMaxS := fmt.Sprintf("%d", nMax)
+	if nMax == 0 {
+		nMaxS = "no limit"
+	}
+	fmt.Print("Settings:\n")
+	fmt.Printf(" - max number of sentences: %s\n", nMaxS)
+	fmt.Printf(" - save audio: %v (folder: %s)\n", saveAudio, audioDir)
+	fmt.Printf(" - wikispeech url: %s\n", wikispeechURL)
+	fmt.Printf(" - wikispeech language tag: %s\n", lang)
+	fmt.Printf("\n")
 
 	if saveAudio {
 		err := os.MkdirAll(audioDir, 0700)
