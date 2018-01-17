@@ -59,7 +59,10 @@ var maxConcurr = 10
 var incEvery = 100
 
 func readSents(corpusFile string, response chan sent) {
-	if strings.HasSuffix(corpusFile, ".xml.bz2") {
+	if _, err := os.Stat(corpusFile); os.IsNotExist(err) {
+		fmt.Fprintln(os.Stderr, "Input file does not exist:", corpusFile)
+		os.Exit(1)
+	} else if strings.HasSuffix(corpusFile, ".xml.bz2") {
 		readSentsSBXml(corpusFile, response)
 	} else if strings.HasSuffix(corpusFile, ".xml") {
 		readSentsSBXml(corpusFile, response)
