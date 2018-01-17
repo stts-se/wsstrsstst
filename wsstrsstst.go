@@ -244,19 +244,30 @@ func callSynth1(s sent, resp chan sent) {
 
 func main() {
 
-	var nMaxF = flag.Int("n", 0, "max number of sentences to synthesize (default no limit)")
-	var saveAudioF = flag.Bool("s", false, "save audio files to disk (default false)")
-	var wikispeechURLF = flag.String("u", "http://localhost:10000", "wikispeech url")
-	var langF = flag.String("l", "sv", "wikispeech language tag")
+	var f = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 
-	flag.Parse()
+	var nMaxF = f.Int("n", 0, "max number of sentences to synthesize (default no limit)")
+	var saveAudioF = f.Bool("a", false, "save audio files to disk (default false)")
+	var wikispeechURLF = f.String("u", "http://localhost:10000", "wikispeech url")
+	var langF = f.String("l", "sv", "wikispeech language tag")
 
-	if len(flag.Args()) != 1 {
+	var printUsage = func() {
 		fmt.Fprintln(os.Stderr, "go run <flags> wsstrsstst.go <Text file> (one sentence per line)")
 		fmt.Fprintln(os.Stderr, " OR")
 		fmt.Fprintln(os.Stderr, "go run <flags> wsstrsstst.go <Språkbanken corpus file>\n - See https://spraakbanken.gu.se/eng/resources. The file can be in .bz2 or unzipped XML.")
 		fmt.Fprintln(os.Stderr, "\nOptional flags:")
-		flag.PrintDefaults()
+		f.PrintDefaults()
+	}
+
+	f.Usage = func() {
+		printUsage()
+		os.Exit(0)
+	}
+
+	f.Parse(os.Args)
+
+	if len(f.Args()) != 2 {
+		printUsage()
 		os.Exit(0)
 	}
 
@@ -264,14 +275,20 @@ func main() {
 	saveAudio = *saveAudioF
 	wikispeechURL = finalSlashRe.ReplaceAllString(*wikispeechURLF, "")
 	lang = *langF
+	file := f.Arg(1)
 
 	nMaxS := fmt.Sprintf("%d", nMax)
 	if nMax == 0 {
 		nMaxS = "no limit"
 	}
+	saveAudioS := ": no"
+	if saveAudio {
+		saveAudioS = fmt.Sprintf(" in folder: %s", audioDir)
+	}
 	fmt.Print("Settings:\n")
+	fmt.Printf(" - input file: %s\n", file)
 	fmt.Printf(" - max number of sentences: %s\n", nMaxS)
-	fmt.Printf(" - save audio: %v (folder: %s)\n", saveAudio, audioDir)
+	fmt.Printf(" - save audio%s\n", saveAudioS)
 	fmt.Printf(" - wikispeech url: %s\n", wikispeechURL)
 	fmt.Printf(" - wikispeech language tag: %s\n", lang)
 	fmt.Printf("\n")
@@ -286,8 +303,6 @@ func main() {
 
 	mainStarted := time.Now()
 
-	f := flag.Arg(0)
-
 	// Number of sentences sent concurrently to tts server
 	// This is incremented each 'incEvery' sentences
 	nSents := 1
@@ -295,7 +310,7 @@ func main() {
 	var n int
 
 	sentsChan := make(chan sent)
-	go readSents(f, sentsChan)
+	go readSents(file, sentsChan)
 
 	for s := range sentsChan {
 		if nMax > 0 && n >= nMax {
