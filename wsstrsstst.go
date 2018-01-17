@@ -244,38 +244,37 @@ func callSynth1(s sent, resp chan sent) {
 
 func main() {
 
-	var f = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
-
-	var nMaxF = f.Int("n", 0, "max number of sentences to synthesize (default no limit)")
-	var saveAudioF = f.Bool("a", false, "save audio files to disk (default false)")
-	var wikispeechURLF = f.String("u", "http://localhost:10000", "wikispeech url")
-	var langF = f.String("l", "sv", "wikispeech language tag")
+	var nMaxF = flag.Int("n", 0, "max number of sentences to synthesize (default no limit)")
+	var saveAudioF = flag.Bool("a", false, "save audio files to disk (default false)")
+	var wikispeechURLF = flag.String("u", "http://localhost:10000", "wikispeech url")
+	var langF = flag.String("l", "sv", "wikispeech language tag")
 
 	var printUsage = func() {
 		fmt.Fprintln(os.Stderr, "go run <flags> wsstrsstst.go <Text file> (one sentence per line)")
 		fmt.Fprintln(os.Stderr, " OR")
 		fmt.Fprintln(os.Stderr, "go run <flags> wsstrsstst.go <Språkbanken corpus file>\n - See https://spraakbanken.gu.se/eng/resources. The file can be in .bz2 or unzipped XML.")
 		fmt.Fprintln(os.Stderr, "\nOptional flags:")
-		f.PrintDefaults()
+		flag.PrintDefaults()
 	}
 
-	f.Usage = func() {
+	flag.Usage = func() {
 		printUsage()
 		os.Exit(0)
 	}
 
-	f.Parse(os.Args)
-
-	if len(f.Args()) != 2 {
-		printUsage()
-		os.Exit(0)
-	}
+	flag.Parse()
 
 	nMax = *nMaxF
 	saveAudio = *saveAudioF
 	wikispeechURL = finalSlashRe.ReplaceAllString(*wikispeechURLF, "")
 	lang = *langF
-	file := f.Arg(1)
+
+	if flag.NArg() != 1 {
+		printUsage()
+		os.Exit(0)
+	}
+
+	file := flag.Arg(0)
 
 	nMaxS := fmt.Sprintf("%d", nMax)
 	if nMax == 0 {
