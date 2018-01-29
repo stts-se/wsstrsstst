@@ -24,7 +24,7 @@ type Sentence struct {
 }
 
 type Text struct {
-	Text      string     `xml:"corpus>qtext"`
+	Text      string     `xml:"corpus>text"`
 	Sentences []Sentence //`xml:text>sentence`
 	Word      string     `xml:w`
 }
